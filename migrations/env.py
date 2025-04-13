@@ -13,6 +13,7 @@ from taskapp.config import settings
 from taskapp.database import Base
 from taskapp.models.user import Users
 from taskapp.models.task import Tasks
+from taskapp.models.board import Boards
 
 
 # this is the Alembic Config object, which provides

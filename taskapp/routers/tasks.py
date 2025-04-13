@@ -3,14 +3,14 @@
 Реализует CRUD операции для задач с использованием FastAPI.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
 from uuid import UUID
 
-from taskapp.schemas.tasks import TaskCreate, TaskUpdate, TaskOut
+from taskapp.schemas.tasks import TaskCreate, TaskUpdate, TaskOut, TaskStatusUpdate
 from taskapp.services.task_service import TaskService
+from taskapp.services.board_service import BoardService
 from taskapp.authenticate.dependencies import get_current_user
-from taskapp.models.task import Tasks
 from taskapp.models.user import Users
 
 router = APIRouter(
@@ -20,15 +20,34 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[TaskOut])
-async def get_all_tasks(
+async def get_tasks(
+        board_id: Optional[int] = Query(None, description="ID доски для фильтрации задач"),
+        status_filter: Optional[str] = Query(None, description="Фильтр статуса задачи"),
         current_user: Users = Depends(get_current_user)
 ) -> List[TaskOut]:
     """
-    Получить список всех задач текущего пользователя
+    Получить список задач текущего пользователя с возможностью фильтрации
     """
     try:
-        tasks = await TaskService.get_all(user_id=current_user.id)
+        filter_params = {"user_id": current_user.id}
+
+        if board_id is not None:
+            # Проверяем, что доска принадлежит пользователю
+            board = await BoardService.find_one_or_none(id=board_id, user_id=current_user.id)
+            if not board:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Доска не найдена"
+                )
+            filter_params["board_id"] = board_id
+
+        if status_filter:
+            filter_params["status"] = status_filter
+
+        tasks = await TaskService.get_all(**filter_params)
         return tasks
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -62,11 +81,21 @@ async def create_task(
     Создать новую задачу
     """
     try:
+        # Проверяем, что доска принадлежит пользователю
+        board = await BoardService.find_one_or_none(id=task_data.board_id, user_id=current_user.id)
+        if not board:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Доска не найдена"
+            )
+
         return await TaskService.add_some(
             user_id=current_user.id,
             email=current_user.email,
             **task_data.model_dump()
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,16 +112,63 @@ async def update_task(
     """
     Обновить существующую задачу
     """
-    updated = await TaskService.update_some(
-        model_id=task_id,
-        user_id=current_user.id,
-        **task_data.model_dump()
-    )
-    if not updated:
+    # Проверяем, что задача существует и принадлежит пользователю
+    task = await TaskService.find_one_or_none(id=task_id, user_id=current_user.id)
+    if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Задача не найдена"
         )
+
+    # Если указан новый board_id, проверяем, что доска принадлежит пользователю
+    if task_data.board_id is not None:
+        board = await BoardService.find_one_or_none(id=task_data.board_id, user_id=current_user.id)
+        if not board:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Доска не найдена"
+            )
+
+    updated = await TaskService.update_some(
+        model_id=task_id,
+        user_id=current_user.id,
+        **task_data.model_dump(exclude_unset=True)
+    )
+
+    return updated
+
+
+@router.patch("/{task_id}/status", response_model=TaskOut)
+async def update_task_status(
+        task_id: int,
+        status_data: TaskStatusUpdate,
+        current_user: Users = Depends(get_current_user)
+) -> TaskOut:
+    """
+    Обновить только статус задачи
+    """
+    # Проверяем валидность статуса
+    valid_statuses = ["Запланировано", "В работе", "Готово"]
+    if status_data.status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Неверный статус. Допустимые значения: {', '.join(valid_statuses)}"
+        )
+
+    # Проверяем, что задача существует и принадлежит пользователю
+    task = await TaskService.find_one_or_none(id=task_id, user_id=current_user.id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Задача не найдена"
+        )
+
+    updated = await TaskService.update_some(
+        model_id=task_id,
+        user_id=current_user.id,
+        status=status_data.status
+    )
+
     return updated
 
 
@@ -104,10 +180,16 @@ async def delete_task(
     """
     Удалить задачу
     """
-    success = await TaskService.delete_some(model_id=task_id, user_id=current_user.id)
-    if not success:
+    task = await TaskService.find_one_or_none(id=task_id, user_id=current_user.id)
+    if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Задача не найдена"
+        )
 
+    success = await TaskService.delete_some(model_id=task_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при удалении задачи"
         )
