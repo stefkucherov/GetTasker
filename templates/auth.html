@@ -1,97 +1,88 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get Tasker — Вход</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        body {
-            background: url('https://images.pexels.com/photos/4252889/pexels-photo-4252889.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2') no-repeat center center fixed;
-            background-size: cover;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+{% extends "base.html" %}
 
-        .auth-card {
-            background: rgba(248, 249, 250, 0.95);
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
-            padding: 2rem;
-            border: 3px solid #383a37 !important;  /* Измененная рамка */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);  /* Добавлена тень */
-        }
+{% block title %}Вход — GetTasker{% endblock %}
 
-        .form-control {
-            background-color: rgba(255, 255, 255, 0.9) !important;
-            border: 1px solid #dee2e6;
-            padding-left: 40px;
-            transition: all 0.3s;
-        }
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    body {
+        background: url('https://images.pexels.com/photos/4252889/pexels-photo-4252889.jpeg') no-repeat center center fixed;
+        background-size: cover;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .auth-card {
+        background: rgba(248, 249, 250, 0.95);
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        padding: 2rem;
+        border: 3px solid #383a37;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .input-icon {
+        position: absolute;
+        top: 50%;
+        left: 15px;
+        transform: translateY(-50%);
+        color: #6c757d;
+        z-index: 2;
+    }
+    .form-control {
+        background-color: rgba(255, 255, 255, 0.9);
+        border: 1px solid #dee2e6;
+        padding-left: 40px;
+        transition: all 0.3s;
+    }
+    .btn-auth {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.1rem;
+    }
+    .btn-custom-success {
+        background: #198754;
+        border-color: #198754;
+        color: white;
+    }
+    .btn-custom-primary {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+</style>
+{% endblock %}
 
-        .input-icon {
-            position: absolute;
-            z-index: 2;
-            top: 50%;
-            transform: translateY(-50%);
-            left: 15px;
-            color: #6c757d;
-        }
+{% block body %}
+<div class="auth-card">
+    <h2 class="text-center mb-4">
+        <i class="bi bi-check2-square me-2"></i>Get Tasker
+    </h2>
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/auth/login">
+        <div class="mb-3 position-relative">
+            <i class="bi bi-envelope input-icon"></i>
+            <input type="email" name="email" class="form-control form-control-lg" placeholder="Электронная почта" required>
+        </div>
+        <div class="mb-4 position-relative">
+            <i class="bi bi-shield-lock input-icon"></i>
+            <input type="password" name="password" class="form-control form-control-lg" placeholder="Пароль" required>
+        </div>
+        <div class="d-grid gap-3">
+            <button type="submit" class="btn btn-custom-success btn-auth">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+            </button>
+            <a href="/pages/register" class="btn btn-custom-primary btn-auth">
+                <i class="bi bi-person-plus me-2"></i>Регистрация
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
 
-        .btn-custom-primary {
-            background: #0d6efd;
-            border-color: #0d6efd;
-            color: white;
-        }
 
-        .btn-custom-success {
-            background: #198754;
-            border-color: #198754;
-            color: white;
-        }
-
-        .btn-auth {
-            width: 100%;
-            padding: 12px;
-            font-size: 1.1rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-card">
-        <h2 class="text-center mb-4">
-            <i class="bi bi-check2-square me-2"></i>Get Tasker
-        </h2>
-
-        <form>
-            <div class="mb-3 position-relative">
-                <i class="bi bi-envelope input-icon"></i>
-                <input type="email"
-                       class="form-control form-control-lg"
-                       placeholder="Электронная почта">
-            </div>
-
-            <div class="mb-4 position-relative">
-                <i class="bi bi-shield-lock input-icon"></i>
-                <input type="password"
-                       class="form-control form-control-lg"
-                       placeholder="Пароль">
-            </div>
-
-            <div class="d-grid gap-3">
-                <button class="btn btn-custom-success btn-auth">
-                    <i class="bi bi-box-arrow-in-right me-2"></i>Войти
-                </button>
-                <button class="btn btn-custom-primary btn-auth">
-                    <i class="bi bi-person-plus me-2"></i>Зарегистрироваться
-                </button>
-            </div>
-        </form>
-    </div>
-</body>
-</html>

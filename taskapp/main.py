@@ -12,7 +12,7 @@ from starlette.templating import Jinja2Templates
 from taskapp.routers.users import router as user_router
 from taskapp.routers.tasks import router as task_router
 from taskapp.routers.boards import router as board_router
-from pages.router import router as router_pages
+from pages.router import router as page_router
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -40,7 +40,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(user_router)
 app.include_router(task_router)
 
-app.include_router(router_pages)
+app.include_router(page_router)
 
 app.include_router(board_router)
 
