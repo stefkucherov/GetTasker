@@ -1,3 +1,10 @@
+"""
+Зависимости и вспомогательные функции для проверки авторизации:
+- Получение токена из cookie
+- Декодирование и валидация JWT
+- Получение текущего пользователя по токену
+"""
+
 from datetime import timedelta, datetime, UTC
 
 from fastapi import Depends, Request, status

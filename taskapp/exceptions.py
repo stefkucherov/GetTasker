@@ -1,3 +1,8 @@
+"""
+Кастомные исключения проекта.
+Определяет ошибки, которые используются в бизнес-логике (например, дублирование, доступ).
+"""
+
 from fastapi import HTTPException, status
 
 UserAlreadyExistsException = HTTPException(

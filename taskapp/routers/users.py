@@ -27,6 +27,9 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/login")
 async def get_login_page(request: Request):
+    """
+    Отобразить страницу входа
+    """
     return templates.TemplateResponse("auth.html", {"request": request})
 
 
@@ -36,6 +39,12 @@ async def login_user(
         email: str = Form(...),
         password: str = Form(...)
 ):
+    """
+    Обработать вход пользователя
+
+    Проверяет наличие пользователя и корректность пароля.
+    В случае успеха выдает токен и устанавливает cookie.
+    """
     user = await UserService.find_one_or_none(email=email)
     if not user or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse(
@@ -57,6 +66,9 @@ async def login_user(
 
 @router.get("/register")
 async def get_register_page(request: Request):
+    """
+    Отобразить страницу регистрации
+    """
     return templates.TemplateResponse("regs.html", {"request": request})
 
 
@@ -67,6 +79,12 @@ async def register_user(
         email: str = Form(...),
         password: str = Form(...)
 ):
+    """
+    Обработать регистрацию нового пользователя
+
+    Проверяет, существует ли пользователь с такой почтой.
+    В случае успеха создает нового пользователя.
+    """
     if await UserService.find_one_or_none(email=email):
         return templates.TemplateResponse(
             "regs.html",
@@ -86,6 +104,9 @@ async def register_user(
 
 @router.post("/logout")
 async def logout_user():
+    """
+    Выйти из аккаунта (удалить токен из cookie)
+    """
     response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(key="booking_access_token", httponly=True, path="/")
     return response
@@ -93,4 +114,7 @@ async def logout_user():
 
 @router.get("/me")
 async def read_me_users(current_user: Users = Depends(get_current_user)):
+    """
+    Получить данные текущего авторизованного пользователя
+    """
     return {"username": current_user.username, "email": current_user.email}

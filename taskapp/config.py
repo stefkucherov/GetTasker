@@ -1,3 +1,8 @@
+"""
+Конфигурация приложения.
+Загружает настройки проекта: база данных, переменные окружения и другие параметры.
+"""
+
 from typing import Optional
 
 from pydantic import model_validator
@@ -34,5 +39,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-print(settings.DB_HOST)  # Проверяем, что переменные загружены
-print(settings.DATABASE_URL)  # Проверяем, что URL сформировался
+print(settings.DB_HOST)
+print(settings.DATABASE_URL)

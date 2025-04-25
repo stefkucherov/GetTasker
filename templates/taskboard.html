@@ -1,31 +1,34 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Get Tasker — Доски</title>
 
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+        rel="stylesheet"/>
   <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+        rel="stylesheet"/>
 
   <style>
-    body { display: flex; min-height: 100vh; }
-    .vertical-nav {
-      width: 280px; height: 100vh; position: sticky; top: 0;
-      background: #f8f9fa; border-right: 1px solid #dee2e6;
-      overflow-y: auto;
+    body { display:flex; min-height:100vh; }
+    .vertical-nav { width:280px; height:100vh; position:sticky; top:0;
+      background:#f8f9fa; border-right:1px solid #dee2e6; overflow-y:auto;
     }
-    .main-content { flex-grow: 1; padding: 2rem; }
-    .board-card {
-      border: none; background: #fff; border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 8px;
-      padding: .75rem; transition: all .2s;
+    .main-content { flex-grow:1; padding:2rem; }
+    .board-card { margin-bottom:.5rem; padding:.75rem; border:none;
+      background:#fff; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);
+      transition:all .2s;
     }
-    .board-card:hover { transform: translateX(5px); box-shadow: 0 4px 8px rgba(0,0,0,.1); }
-    .task-card { transition: transform .2s; }
-    .task-card:hover { transform: translateY(-2px); }
+    .board-card:hover { transform:translateX(3px); box-shadow:0 4px 8px rgba(0,0,0,.1); }
+    .task-card { transition:transform .2s; }
+    .task-card:hover { transform:translateY(-2px); }
+    .task-actions { display: flex; gap: 0.25rem; }
+    .status-btn { color: #6c757d; border: 1px solid #dee2e6; min-width: 2rem; }
+    .status-btn:hover { background-color: #f8f9fa; }
+    .status-btn i { font-size: 0.875rem; }
   </style>
 </head>
 <body>
@@ -35,65 +38,50 @@
     <div class="d-flex flex-column h-100">
 
       <div class="mb-4">
-        <h4 class="mb-0"><i class="bi bi-check2-square me-2"></i>Get Tasker</h4>
+        <h4 class="mb-0">
+          <i class="bi bi-check2-square me-2"></i>Get Tasker
+        </h4>
         <small class="text-muted">Управление задачами</small>
       </div>
 
-      <div class="nav flex-column">
-        <!-- User info -->
-        <div class="mb-4">
-          <div class="fw-bold text-uppercase small text-muted mb-2">Аккаунт</div>
-          <button class="btn btn-outline-primary btn-custom mb-2">
-            <i class="bi bi-person-badge me-2"></i>{{ user.username }}
-          </button>
-        </div>
+      <!-- Аккаунт -->
+      <div class="mb-4">
+        <div class="fw-bold text-uppercase small text-muted mb-2">Аккаунт</div>
+        <button class="btn btn-outline-primary mb-2" disabled>
+          <i class="bi bi-person-badge me-2"></i>{{ user.username }}
+        </button>
+      </div>
 
-        <!-- Boards list -->
-        <div class="mb-4">
-          <div class="fw-bold text-uppercase small text-muted mb-2">Мои доски</div>
-          <button class="btn btn-light w-100 mb-3"
-                  data-bs-toggle="modal" data-bs-target="#createBoardModal">
-            <i class="bi bi-plus-square me-2"></i>Создать доску
-          </button>
-          <div class="boards-list">
-            {% for b in boards %}
-            <div class="board-card d-flex align-items-center">
-              <i class="bi bi-kanban fs-5 me-3 text-primary"></i>
-              <div class="flex-grow-1">
-                <a href="/pages/boards/{{ b.id }}" class="fw-bold text-decoration-none">
-                  {{ b.name }}
-                </a>
-                <small class="text-muted">{{ b.tasks_count }} активных задач</small>
-              </div>
-              <div class="dropdown">
-                <button class="btn btn-link text-secondary p-0" data-bs-toggle="dropdown">
-                  <i class="bi bi-three-dots"></i>
-                </button>
-                <ul class="dropdown-menu">
-                  <li>
-                    <button class="dropdown-item"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editBoardModal"
-                            data-board-id="{{ b.id }}"
-                            data-board-name="{{ b.name }}">
-                      <i class="bi bi-pencil me-2"></i>Редактировать
-                    </button>
-                  </li>
-                  <li>
-                    <button class="dropdown-item"
-                            data-bs-toggle="modal"
-                            data-bs-target="#deleteBoardModal"
-                            data-board-id="{{ b.id }}">
-                      <i class="bi bi-trash me-2"></i>Удалить
-                    </button>
-                  </li>
-                </ul>
-              </div>
+      <!-- Мои доски -->
+      <div class="mb-4">
+        <div class="fw-bold text-uppercase small text-muted mb-2">Мои доски</div>
+        <button class="btn btn-light w-100 mb-3"
+                data-bs-toggle="modal" data-bs-target="#createBoardModal">
+          <i class="bi bi-plus-square me-2"></i>Создать доску
+        </button>
+        <div class="boards-list">
+          {% for b in boards %}
+          <div class="board-card d-flex align-items-center">
+            <i class="bi bi-kanban fs-5 me-3 text-primary"></i>
+            <div class="flex-grow-1">
+              <a href="/pages/boards/{{ b.id }}" class="fw-bold text-decoration-none">
+                {{ b.name }}
+              </a>
+              <small class="text-muted">{{ b.tasks_count }} активных задач</small>
             </div>
-            {% endfor %}
+            <div class="btn-group">
+              <button class="btn btn-sm btn-link text-secondary"
+                      data-bs-toggle="modal" data-bs-target="#editBoardModal-{{ b.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-link text-secondary"
+                      data-bs-toggle="modal" data-bs-target="#deleteBoardModal-{{ b.id }}">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
+          {% endfor %}
         </div>
-
       </div>
 
       <div class="mt-auto border-top pt-3">
@@ -101,38 +89,33 @@
           <i class="bi bi-info-circle me-1"></i>Версия 2.1.0
         </div>
       </div>
-
     </div>
   </nav>
 
-  <!-- Main content -->
+  <!-- Main Content -->
   <main class="main-content">
     <div class="container-fluid">
 
+      {% if board %}
+      <!-- Заголовок доски -->
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Доска проекта: {{ board.name }}</h3>
-        <div>
-          <button class="btn btn-outline-primary me-2"
-                  data-bs-toggle="modal"
-                  data-bs-target="#editBoardModal"
-                  data-board-id="{{ board.id }}"
-                  data-board-name="{{ board.name }}">
-            <i class="bi bi-pencil me-1"></i>Редактировать
+        <h3>Доска: {{ board.name }}</h3>
+        <div class="btn-group">
+          <button class="btn btn-outline-primary"
+                  data-bs-toggle="modal" data-bs-target="#editBoardModal-{{ board.id }}">
+            <i class="bi bi-pencil me-1"></i>Изменить
           </button>
           <button class="btn btn-outline-danger"
-                  data-bs-toggle="modal"
-                  data-bs-target="#deleteBoardModal"
-                  data-board-id="{{ board.id }}">
+                  data-bs-toggle="modal" data-bs-target="#deleteBoardModal-{{ board.id }}">
             <i class="bi bi-trash me-1"></i>Удалить
           </button>
         </div>
       </div>
 
       <div class="row g-4">
-
         <!-- Запланировано -->
         <div class="col-lg-4">
-          <div class="card border-primary">
+          <div class="card border-primary h-100">
             <div class="card-header bg-primary text-white">
               <i class="bi bi-calendar-check me-2"></i>Запланировано
               <span class="badge bg-light text-dark ms-2">{{ planned_tasks|length }}</span>
@@ -141,8 +124,16 @@
               {% for task in planned_tasks %}
               <div class="task-card mb-3 p-3 border rounded">
                 <div class="d-flex justify-content-between">
-                  <div>
-                    <input class="form-check-input me-2" type="checkbox" data-task-id="{{ task.id }}">
+                  <div class="task-actions">
+                    <!-- Кнопка → В работе -->
+                    <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/status" method="post">
+                      <input type="hidden" name="status_value" value="В работе">
+                      <button type="submit" class="btn btn-sm status-btn" title="Перевести в 'В работе'">
+                        <i class="bi bi-arrow-right"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <div class="flex-grow-1 ms-2">
                     <strong>{{ task.task_name }}</strong>
                     <div class="text-muted small mt-1">
                       <i class="bi bi-clock"></i>
@@ -152,29 +143,21 @@
                   </div>
                   <div class="btn-group">
                     <button class="btn btn-sm btn-link text-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editTaskModal"
-                            data-task-id="{{ task.id }}"
-                            data-task-name="{{ task.task_name }}"
-                            data-task-desc="{{ task.task_description }}"
-                            data-task-date="{{ task.due_date|default('') }}">
+                            data-bs-toggle="modal" data-bs-target="#editTaskModal-{{ task.id }}">
                       <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-link text-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#deleteTaskModal"
-                            data-task-id="{{ task.id }}">
+                            data-bs-toggle="modal" data-bs-target="#deleteTaskModal-{{ task.id }}">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
               </div>
               {% endfor %}
-              <button class="btn btn-outline-secondary w-100"
-                      data-bs-toggle="modal"
-                      data-bs-target="#createTaskModal"
-                      data-board-id="{{ board.id }}">
-                <i class="bi bi-plus-lg"></i>Добавить задачу
+              <!-- Форма создания задачи с hidden status -->
+              <button class="btn btn-outline-secondary w-100 mb-2"
+                      data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                <i class="bi bi-plus-lg me-1"></i>Добавить задачу
               </button>
             </div>
           </div>
@@ -182,7 +165,7 @@
 
         <!-- В работе -->
         <div class="col-lg-4">
-          <div class="card border-warning">
+          <div class="card border-warning h-100">
             <div class="card-header bg-warning text-dark">
               <i class="bi bi-tools me-2"></i>В работе
               <span class="badge bg-light text-dark ms-2">{{ in_progress_tasks|length }}</span>
@@ -191,48 +174,50 @@
               {% for task in in_progress_tasks %}
               <div class="task-card mb-3 p-3 border rounded">
                 <div class="d-flex justify-content-between">
-                  <div>
-                    <input class="form-check-input me-2" type="checkbox" data-task-id="{{ task.id }}" checked>
+                  <div class="task-actions">
+                    <!-- ← Запланировано -->
+                    <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/status" method="post">
+                      <input type="hidden" name="status_value" value="Запланировано">
+                      <button type="submit" class="btn btn-sm status-btn" title="Вернуть в 'Запланировано'">
+                        <i class="bi bi-arrow-left"></i>
+                      </button>
+                    </form>
+                    <!-- → Готово -->
+                    <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/status" method="post">
+                      <input type="hidden" name="status_value" value="Готово">
+                      <button type="submit" class="btn btn-sm status-btn" title="Перевести в 'Готово'">
+                        <i class="bi bi-arrow-right"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <div class="flex-grow-1 ms-2">
                     <strong>{{ task.task_name }}</strong>
                     <div class="text-muted small mt-1">
                       <i class="bi bi-clock"></i>
-                      {% if task.due_date %}До {{ task.due_date.strftime("%d %b") }}{% endif %}
+                      {% if task.due_date %}До {{ task.due_date.strftime("%d %b") }}{% else %}Без срока{% endif %}
                       <i class="bi bi-person ms-2"></i>{{ user.username }}
                     </div>
                   </div>
                   <div class="btn-group">
                     <button class="btn btn-sm btn-link text-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editTaskModal"
-                            data-task-id="{{ task.id }}"
-                            data-task-name="{{ task.task_name }}"
-                            data-task-desc="{{ task.task_description }}"
-                            data-task-date="{{ task.due_date|default('') }}">
+                            data-bs-toggle="modal" data-bs-target="#editTaskModal-{{ task.id }}">
                       <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-link text-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#deleteTaskModal"
-                            data-task-id="{{ task.id }}">
+                            data-bs-toggle="modal" data-bs-target="#deleteTaskModal-{{ task.id }}">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
               </div>
               {% endfor %}
-              <button class="btn btn-outline-secondary w-100"
-                      data-bs-toggle="modal"
-                      data-bs-target="#createTaskModal"
-                      data-board-id="{{ board.id }}">
-                <i class="bi bi-plus-lg"></i>Добавить задачу
-              </button>
             </div>
           </div>
         </div>
 
         <!-- Готово -->
         <div class="col-lg-4">
-          <div class="card border-success">
+          <div class="card border-success h-100">
             <div class="card-header bg-success text-white">
               <i class="bi bi-check2-all me-2"></i>Готово
               <span class="badge bg-light text-dark ms-2">{{ completed_tasks|length }}</span>
@@ -240,45 +225,58 @@
             <div class="card-body">
               {% for task in completed_tasks %}
               <div class="task-card mb-3 p-3 border rounded bg-light">
-                <div class="form-check">
-                  <input class="form-check-input me-2" type="checkbox" checked disabled>
-                  <label class="form-check-label">
+                <div class="d-flex justify-content-between">
+                  <div class="task-actions">
+                    <!-- ← В работу -->
+                    <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/status" method="post">
+                      <input type="hidden" name="status_value" value="В работе">
+                      <button type="submit" class="btn btn-sm status-btn" title="Вернуть в 'В работе'">
+                        <i class="bi bi-arrow-left"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <div class="flex-grow-1 ms-2">
                     <strong>{{ task.task_name }}</strong>
                     <div class="text-muted small mt-1">
                       <i class="bi bi-check2"></i>
-                      {% if task.due_date %}Завершено {{ task.due_date.strftime("%d %b") }}{% endif %}
+                      {% if task.due_date %}Завершено {{ task.due_date.strftime("%d %b") }}{% else %}Без даты{% endif %}
                       <i class="bi bi-person ms-2"></i>{{ user.username }}
                     </div>
-                  </label>
+                  </div>
+                  <div class="btn-group">
+                    <button class="btn btn-sm btn-link text-secondary"
+                            data-bs-toggle="modal" data-bs-target="#deleteTaskModal-{{ task.id }}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               {% endfor %}
-              <button class="btn btn-outline-secondary w-100"
-                      data-bs-toggle="modal"
-                      data-bs-target="#createTaskModal"
-                      data-board-id="{{ board.id }}">
-                <i class="bi bi-plus-lg"></i>Добавить задачу
-              </button>
             </div>
           </div>
         </div>
-
       </div>
+      {% else %}
+      <div class="text-center mt-5">
+        <h3>Выберите доску в меню слева или создайте новую</h3>
+      </div>
+      {% endif %}
+
     </div>
   </main>
 
-  <!-- Модальные окна: Boards -->
+  <!-- ========== Modals ========== -->
 
-  <!-- Create Board -->
+  <!-- Create Board Modal -->
   <div class="modal fade" id="createBoardModal" tabindex="-1">
     <div class="modal-dialog">
-      <form action="/boards" method="post" class="modal-content">
+      <form action="/pages/boards" method="post" class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Новая доска</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <input type="text" name="name" class="form-control" placeholder="Название доски" required>
+          <input name="name" type="text" class="form-control" placeholder="Название доски" required>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -288,170 +286,75 @@
     </div>
   </div>
 
-  <!-- Edit Board -->
-  <div class="modal fade" id="editBoardModal" tabindex="-1">
+  <!-- Edit/Delete Board Modals -->
+  {% if board %}
+  <div class="modal fade" id="editBoardModal-{{ board.id }}" tabindex="-1">
     <div class="modal-dialog">
-      <form action="" method="post" class="modal-content" id="editBoardForm">
-        <div class="modal-header">
-          <h5 class="modal-title">Редактировать доску</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="board_id">
-          <input type="text" name="name" class="form-control" placeholder="Новое название" required>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary">Сохранить</button>
-        </div>
+      <form action="/pages/boards/{{ board.id }}/edit" method="post" class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Изменить доску</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><input name="name" type="text" class="form-control" value="{{ board.name }}" required></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="modal fade" id="deleteBoardModal-{{ board.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <form action="/pages/boards/{{ board.id }}/delete" method="post" class="modal-content">
+        <div class="modal-header bg-danger text-white"><h5 class="modal-title">Удалить доску</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">Вы уверены, что хотите удалить доску «{{ board.name }}»?</div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-danger">Удалить</button></div>
       </form>
     </div>
   </div>
 
-  <!-- Delete Board -->
-  <div class="modal fade" id="deleteBoardModal" tabindex="-1">
-    <div class="modal-dialog">
-      <form action="" method="post" class="modal-content" id="deleteBoardForm">
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title">Удалить доску</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          Вы уверены, что хотите удалить эту доску? Все задачи будут удалены безвозвратно!
-          <input type="hidden" name="board_id">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-danger">Удалить</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Модальные окна: Tasks -->
-
-  <!-- Create Task -->
+  <!-- Create Task Modal -->
   <div class="modal fade" id="createTaskModal" tabindex="-1">
     <div class="modal-dialog">
-      <form action="/tasks" method="post" class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Новая задача</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
+      <form action="/pages/boards/{{ board.id }}/tasks" method="post" class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Новая задача</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <input type="hidden" name="board_id">
-          <div class="mb-3">
-            <input type="text" name="task_name" class="form-control" placeholder="Название" required>
-          </div>
-          <div class="mb-3">
-            <textarea name="task_description" class="form-control" rows="3" placeholder="Описание"></textarea>
-          </div>
-          <div class="mb-3">
-            <input type="date" name="due_date" class="form-control">
-          </div>
+          <div class="mb-3"><input name="task_name" type="text" class="form-control" placeholder="Название" required></div>
+          <div class="mb-3"><textarea name="task_description" class="form-control" rows="3" placeholder="Описание"></textarea></div>
+          <div class="mb-3"><input name="due_date" type="date" class="form-control"></div>
+          <!-- Скрытое поле статуса -->
+          <input name="status" type="hidden" value="Запланировано">
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary">Создать</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Создать</button></div>
       </form>
     </div>
   </div>
 
-  <!-- Edit Task -->
-  <div class="modal fade" id="editTaskModal" tabindex="-1">
+  <!-- Edit/Delete Task Modals -->
+  {% for task in planned_tasks + in_progress_tasks + completed_tasks %}
+  <div class="modal fade" id="editTaskModal-{{ task.id }}" tabindex="-1">
     <div class="modal-dialog">
-      <form action="" method="post" class="modal-content" id="editTaskForm">
-        <div class="modal-header">
-          <h5 class="modal-title">Редактировать задачу</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
+      <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/edit" method="post" class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Редактировать задачу</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <input type="hidden" name="task_id">
-          <input type="hidden" name="board_id">
-          <div class="mb-3">
-            <input type="text" name="task_name" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <textarea name="task_description" class="form-control" rows="3" required></textarea>
-          </div>
-          <div class="mb-3">
-            <input type="date" name="due_date" class="form-control" required>
-          </div>
+          <div class="mb-3"><input name="task_name" type="text" class="form-control" value="{{ task.task_name }}" required></div>
+          <div class="mb-3"><textarea name="task_description" class="form-control" rows="3" required>{{ task.task_description }}</textarea></div>
+          <div class="mb-3"><input name="due_date" type="date" class="form-control" value="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}"></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-primary">Сохранить</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div>
       </form>
     </div>
   </div>
-
-  <!-- Delete Task -->
-  <div class="modal fade" id="deleteTaskModal" tabindex="-1">
+  <div class="modal fade" id="deleteTaskModal-{{ task.id }}" tabindex="-1">
     <div class="modal-dialog">
-      <form action="" method="post" class="modal-content" id="deleteTaskForm">
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title">Удалить задачу</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          Вы уверены, что хотите удалить эту задачу?
-          <input type="hidden" name="task_id">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-          <button type="submit" class="btn btn-danger">Удалить</button>
-        </div>
+      <form action="/pages/boards/{{ board.id }}/tasks/{{ task.id }}/delete" method="post" class="modal-content">
+        <div class="modal-header bg-danger text-white"><h5 class="modal-title">Удалить задачу</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">Вы уверены, что хотите удалить задачу «{{ task.task_name }}»?</div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-danger">Удалить</button></div>
       </form>
     </div>
   </div>
+  {% endfor %}
+  {% endif %}
 
-  <!-- Bootstrap JS + модальное заполнение -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Boards
-    document.querySelectorAll('[data-bs-target="#editBoardModal"]').forEach(btn => {
-      btn.onclick = () => {
-        const modal = document.getElementById('editBoardModal');
-        modal.querySelector('#editBoardForm').action = '/boards/' + btn.dataset.boardId;
-        modal.querySelector('input[name="board_id"]').value = btn.dataset.boardId;
-        modal.querySelector('input[name="name"]').value = btn.dataset.boardName;
-      };
-    });
-    document.querySelectorAll('[data-bs-target="#deleteBoardModal"]').forEach(btn => {
-      btn.onclick = () => {
-        const modal = document.getElementById('deleteBoardModal');
-        modal.querySelector('#deleteBoardForm').action = '/boards/' + btn.dataset.boardId;
-        modal.querySelector('input[name="board_id"]').value = btn.dataset.boardId;
-      };
-    });
-    // Tasks
-    document.querySelectorAll('[data-bs-target="#createTaskModal"]').forEach(btn => {
-      btn.onclick = () => {
-        const modal = document.getElementById('createTaskModal');
-        modal.querySelector('input[name="board_id"]').value = btn.dataset.boardId;
-      };
-    });
-    document.querySelectorAll('[data-bs-target="#editTaskModal"]').forEach(btn => {
-      btn.onclick = () => {
-        const modal = document.getElementById('editTaskModal');
-        modal.querySelector('#editTaskForm').action = '/tasks/' + btn.dataset.taskId;
-        modal.querySelector('input[name="task_id"]').value = btn.dataset.taskId;
-        modal.querySelector('input[name="board_id"]').value = '{{ board.id }}';
-        modal.querySelector('input[name="task_name"]').value = btn.dataset.taskName;
-        modal.querySelector('textarea[name="task_description"]').value = btn.dataset.taskDesc || '';
-        modal.querySelector('input[name="due_date"]').value = btn.dataset.taskDate || '';
-      };
-    });
-    document.querySelectorAll('[data-bs-target="#deleteTaskModal"]').forEach(btn => {
-      btn.onclick = () => {
-        const modal = document.getElementById('deleteTaskModal');
-        modal.querySelector('#deleteTaskForm').action = '/tasks/' + btn.dataset.taskId;
-        modal.querySelector('input[name="task_id"]').value = btn.dataset.taskId;
-      };
-    });
-  </script>
-
 </body>
 </html>
+
+
+
+

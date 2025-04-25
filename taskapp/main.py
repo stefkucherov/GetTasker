@@ -1,3 +1,8 @@
+"""
+Точка входа в приложение FastAPI.
+Создаёт экземпляр приложения, подключает роутеры и мидлвари.
+"""
+
 from re import search
 
 from fastapi import FastAPI, Query, Depends

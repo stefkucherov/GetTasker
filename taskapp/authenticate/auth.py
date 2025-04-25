@@ -1,3 +1,10 @@
+"""
+Утилиты для аутентификации:
+- Хеширование и проверка пароля
+- Генерация JWT-токена
+- Асинхронная аутентификация пользователя по email и паролю
+"""
+
 from datetime import datetime, timedelta, UTC
 
 from jose import jwt
