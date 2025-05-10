@@ -14,7 +14,7 @@ from pydantic import EmailStr
 from taskapp.config import settings
 from taskapp.services.user_service import UserService
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")  # Используем argon2
 
 
 def get_password_hash(password: str) -> str:
