@@ -9,7 +9,7 @@ from fastapi import (
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 
-from taskapp.services.user_service import UserService
+from taskapp.services.user_service import UserService, get_user_service
 from taskapp.authenticate.auth import (
     create_access_token, get_password_hash, verify_password
 )
@@ -37,7 +37,8 @@ async def get_login_page(request: Request):
 async def login_user(
         request: Request,
         email: str = Form(...),
-        password: str = Form(...)
+        password: str = Form(...),
+        user_service: UserService = Depends(get_user_service)
 ):
     """
     Обработать вход пользователя
@@ -45,7 +46,7 @@ async def login_user(
     Проверяет наличие пользователя и корректность пароля.
     В случае успеха выдает токен и устанавливает cookie.
     """
-    user = await UserService.find_one_or_none(email=email)
+    user = await user_service.find_one_or_none(email=email)
     if not user or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse(
             "auth.html",
@@ -77,7 +78,8 @@ async def register_user(
         request: Request,
         username: str = Form(...),
         email: str = Form(...),
-        password: str = Form(...)
+        password: str = Form(...),
+        user_service: UserService = Depends(get_user_service)
 ):
     """
     Обработать регистрацию нового пользователя
@@ -85,7 +87,7 @@ async def register_user(
     Проверяет, существует ли пользователь с такой почтой.
     В случае успеха создает нового пользователя.
     """
-    if await UserService.find_one_or_none(email=email):
+    if await user_service.find_one_or_none(email=email):
         return templates.TemplateResponse(
             "regs.html",
             {"request": request, "error": "Пользователь с такой почтой уже существует"},
@@ -93,7 +95,7 @@ async def register_user(
         )
 
     hashed_password = get_password_hash(password)
-    await UserService.add_some(
+    await user_service.add_some(
         email=email,
         username=username,
         hashed_password=hashed_password

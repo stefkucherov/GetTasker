@@ -5,24 +5,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from taskapp.main import app as fastapi_app
 from taskapp.database import Base
 from taskapp.models.user import Users
-from taskapp.authenticate.auth import get_password_hash, create_access_token
+from taskapp.models.board import Boards
+from taskapp.models.task import Tasks
+from taskapp.authenticate.auth import get_password_hash
 import uuid
 
-# Параметры базы данных
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_USER = "postgres"
-DB_PASS = "postgres"
-DB_NAME = "gettasker_testbase"
-
-# Формируем URL подключения
-DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/gettasker_testbase"
 
 
-# Database engine fixture for the test database
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def db_engine():
-    engine = create_async_engine(DB_URL, echo=True)
+    engine = create_async_engine(DB_URL, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -32,7 +25,6 @@ async def db_engine():
     await engine.dispose()
 
 
-# Database session fixture with transaction rollback
 @pytest_asyncio.fixture(scope="function")
 async def db_session(db_engine):
     async_session = async_sessionmaker(
@@ -42,10 +34,21 @@ async def db_session(db_engine):
     )
     async with async_session() as session:
         yield session
-        await session.rollback()  # Откатываем изменения после теста
 
 
-# AsyncClient fixture using ASGITransport
+# 👇 Подмена зависимости get_async_session в FastAPI
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def override_get_db(db_session):
+    from taskapp.authenticate.dependencies import get_async_session
+
+    async def _override():
+        yield db_session
+
+    fastapi_app.dependency_overrides[get_async_session] = _override
+    yield
+    fastapi_app.dependency_overrides.clear()
+
+
 @pytest_asyncio.fixture(scope="function")
 async def ac():
     transport = ASGITransport(app=fastapi_app)
@@ -53,21 +56,20 @@ async def ac():
         yield client
 
 
-# Authenticated AsyncClient fixture with cookie-based login
 @pytest_asyncio.fixture(scope="function")
-async def authenticated_ac(test_user, db_session):
-    transport = ASGITransport(app=fastapi_app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(
-            "/pages/login",
-            data={"email": test_user.email, "password": "testpassword"},
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
-        )
-        assert response.status_code == 303
-        yield client
+async def authenticated_ac(ac, test_user):
+    response = await ac.post(
+        "/pages/login",
+        data={"email": test_user.email, "password": "testpassword"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    assert response.status_code in (302, 303)
+    token = response.cookies.get("booking_access_token")
+    assert token is not None
+    ac.cookies.set("booking_access_token", token)
+    yield ac
 
 
-# Test user creation
 @pytest_asyncio.fixture(scope="function")
 async def test_user(db_session: AsyncSession):
     unique_suffix = str(uuid.uuid4())[:8]
@@ -76,8 +78,8 @@ async def test_user(db_session: AsyncSession):
     hashed_password = get_password_hash("testpassword")
 
     user = Users(
-        email=email,
         username=username,
+        email=email,
         hashed_password=hashed_password
     )
     db_session.add(user)
@@ -90,8 +92,30 @@ async def test_user(db_session: AsyncSession):
     await db_session.commit()
 
 
-# Bearer-token header generation
 @pytest_asyncio.fixture(scope="function")
-async def auth_headers(test_user, db_session):
-    token = create_access_token({"sub": str(test_user.id)})
-    return {"Authorization": f"Bearer {token}"}
+async def test_board(test_user, db_session: AsyncSession):
+    board = Boards(name="Test Board", user_id=test_user.id)
+    db_session.add(board)
+    await db_session.commit()
+    await db_session.refresh(board)
+    yield board
+    await db_session.delete(board)
+    await db_session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_task(test_user, test_board, db_session: AsyncSession):
+    task = Tasks(
+        user_id=test_user.id,
+        board_id=test_board.id,
+        task_name="Test Task",
+        task_description="Description",
+        status="Запланировано",
+        email=test_user.email
+    )
+    db_session.add(task)
+    await db_session.commit()
+    await db_session.refresh(task)
+    yield task
+    await db_session.delete(task)
+    await db_session.commit()

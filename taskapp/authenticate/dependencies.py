@@ -9,6 +9,8 @@ from datetime import timedelta, datetime, UTC
 
 from fastapi import Depends, Request, status
 from jose import jwt, JWTError
+from sqlalchemy.ext.asyncio import AsyncSession
+from taskapp.database import get_async_session
 from taskapp.config import settings
 from taskapp.services.user_service import UserService
 from taskapp.exceptions import (
@@ -26,7 +28,10 @@ def get_token(request: Request):
     return token
 
 
-async def get_current_user(token: str = Depends(get_token)):
+async def get_current_user(
+    token: str = Depends(get_token),
+    session: AsyncSession = Depends(get_async_session)
+):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
     except JWTError:
@@ -40,7 +45,9 @@ async def get_current_user(token: str = Depends(get_token)):
     if not user_id:
         raise UnauthorizedException
 
-    user = await UserService.find_by_id(int(user_id))
+    service = UserService(session)  # создаём экземпляр сервиса
+    user = await service.find_by_id(int(user_id))
     if not user:
         raise UnauthorizedException
+
     return user

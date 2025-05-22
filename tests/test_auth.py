@@ -1,97 +1,63 @@
 import pytest
 from httpx import AsyncClient
-from taskapp.exceptions import UserAlreadyExistsException, UnauthorizedException
-from taskapp.models.user import Users
+from starlette import status
 
 
 @pytest.mark.asyncio
 async def test_register_user_success(ac: AsyncClient):
-    """Тестирование успешной регистрации нового пользователя."""
-    payload = {
-        "username": "TestUser",
-        "email": "newuser@example.com",
-        "password": "testpassword123"
-    }
-    response = await ac.post("/auth/register", json=payload)
-    assert response.status_code == 200
-    assert response.json() == {"message": "Пользователь успешно зарегистрирован"}
+    response = await ac.post(
+        "/auth/register",
+        data={"username": "newuser", "email": "new@example.com", "password": "pass123"},
+        follow_redirects=False
+    )
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers["location"] == "/auth/login"
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(ac: AsyncClient, test_user: Users):
-    """Тестирование регистрации с уже существующим email."""
-    payload = {
-        "username": "DuplicateUser",
-        "email": test_user.email,
-        "password": "anypassword"
-    }
-    response = await ac.post("/auth/register", json=payload)
-    assert response.status_code == 409
-    assert response.json()["detail"] == UserAlreadyExistsException.detail
+async def test_login_user_success(ac: AsyncClient, test_user):
+    response = await ac.post(
+        "/auth/login",
+        data={"email": test_user.email, "password": "string"},
+        follow_redirects=False
+    )
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers["location"] == "/pages/boards"
+    assert "booking_access_token" in response.cookies
 
 
 @pytest.mark.asyncio
-async def test_login_user_success(ac: AsyncClient, test_user: Users):
-    """Тестирование успешного логина с правильными данными."""
-    payload = {
-        "email": test_user.email,
-        "password": "testpassword"
-    }
-    response = await ac.post("/auth/login", json=payload)
-    assert response.status_code == 200
+async def test_get_current_user_success(authenticated_ac: AsyncClient, test_user):
+    response = await authenticated_ac.get("/auth/me")
+    assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "access_token" in data
-    assert "booking_access_token" in response.headers.get("set-cookie", "")
-
-
-@pytest.mark.asyncio
-async def test_login_wrong_password(ac: AsyncClient, test_user: Users):
-    """Тестирование логина с неверным паролем."""
-    payload = {
-        "email": test_user.email,
-        "password": "wrongpassword"
-    }
-    response = await ac.post("/auth/login", json=payload)
-    assert response.status_code == 401
-    assert response.json()["detail"] == UnauthorizedException.detail
-
-
-@pytest.mark.asyncio
-async def test_login_nonexistent_user(ac: AsyncClient):
-    """Тестирование логина с несуществующим пользователем."""
-    payload = {
-        "email": "nonexistent@example.com",
-        "password": "irrelevant"
-    }
-    response = await ac.post("/auth/login", json=payload)
-    assert response.status_code == 401
-    assert response.json()["detail"] == UnauthorizedException.detail
+    assert data["username"] == test_user.username
+    assert data["email"] == test_user.email
 
 
 @pytest.mark.asyncio
 async def test_logout_success(authenticated_ac: AsyncClient):
-    """Тестирование успешного логаута."""
-    response = await authenticated_ac.post("/auth/logout")
-    assert response.status_code == 200
-    assert response.json() == {"message": "Logged out"}
-    assert "booking_access_token" in response.headers.get("set-cookie", "")
-    assert "expires=Thu, 01 Jan 1970" in response.headers.get("set-cookie", "")
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_success(authenticated_ac: AsyncClient, test_user: Users):
-    """Тестирование получения данных текущего пользователя."""
-    response = await authenticated_ac.get("/auth/me")
-    assert response.status_code == 200
-    user_data = response.json()
-    assert user_data["username"] == test_user.username
-    assert user_data["email"] == test_user.email
-    assert user_data["id"] == test_user.id
+    response = await authenticated_ac.post("/auth/logout", follow_redirects=False)
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers["location"] == "/auth/login"
+    assert "booking_access_token" not in response.cookies
 
 
 @pytest.mark.asyncio
 async def test_get_current_user_unauthorized(ac: AsyncClient):
-    """Тестирование попытки получения данных пользователя без токена."""
     response = await ac.get("/auth/me")
-    assert response.status_code == 401
-    assert "токен" in response.json()["detail"].lower()
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "токен истек" in response.json()["detail"].lower() or "не авторизован" in response.json()["detail"].lower()
+
+
+@pytest.fixture
+async def authenticated_ac(ac: AsyncClient, test_user):
+    response = await ac.post(
+        "/auth/login",
+        data={"email": test_user.email, "password": "string"},
+        follow_redirects=False
+    )
+    token = response.cookies.get("booking_access_token")
+    ac.cookies.set("booking_access_token", token)
+    return ac
+

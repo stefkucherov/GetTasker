@@ -1,11 +1,5 @@
-"""
-Базовый сервис для работы с моделями SQLAlchemy.
-Обеспечивает универсальные методы получения, добавления, обновления и удаления данных.
-"""
-
-from taskapp.database import async_session_maker
-from sqlalchemy import select, insert, delete, update, and_
-from sqlalchemy.orm import load_only
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, and_
 
 
 class BaseService:
@@ -15,143 +9,85 @@ class BaseService:
     """
     model = None
 
-    @classmethod
-    async def find_by_id(cls, model_id: int):
+    def __init__(self, session: AsyncSession):
+        """
+        Инициализация сервиса с обязательной сессией.
+        """
+        self.session = session
+
+    async def find_by_id(self, model_id: int):
         """
         Найти объект по ID.
-
-        Args:
-            model_id: Идентификатор записи
-
-        Returns:
-            Объект модели или None
         """
-        async with async_session_maker() as session:
-            query = select(cls.model).where(cls.model.id == model_id)
-            result = await session.execute(query)
-            return result.scalars().first()
+        query = select(self.model).where(self.model.id == model_id)
+        result = await self.session.execute(query)
+        return result.scalars().first()
 
-    @classmethod
-    async def find_one_or_none(cls, **kwargs):
+    async def find_one_or_none(self, **kwargs):
         """
         Найти одну запись по фильтру.
-
-        Args:
-            **kwargs: Поля фильтрации (например, email=...)
-
-        Returns:
-            Один объект модели или None
         """
-        async with async_session_maker() as session:
-            query = select(cls.model).filter_by(**kwargs)
-            result = await session.execute(query)
-            return result.scalar_one_or_none()
+        query = select(self.model).filter_by(**kwargs)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
 
-    @classmethod
-    async def get_all(cls, **filter_by):
+    async def get_all(self, **filter_by):
         """
         Получить все записи с возможной фильтрацией.
-
-        Args:
-            **filter_by: Условия фильтрации (например, user_id=...)
-
-        Returns:
-            Список объектов модели
         """
-        async with async_session_maker() as session:
-            query = select(cls.model).filter_by(**filter_by)
-            result = await session.execute(query)
-            return result.scalars().all()
+        query = select(self.model).filter_by(**filter_by)
+        result = await self.session.execute(query)
+        return result.scalars().all()
 
-    @classmethod
-    async def get_id_and_email_by_id(cls, model_id: int):
+    async def get_id_and_email_by_id(self, model_id: int):
         """
         Получить id и email пользователя по ID.
-
-        Args:
-            model_id: Идентификатор пользователя
-
-        Returns:
-            Кортеж (id, email) или None
         """
-        async with async_session_maker() as session:
-            query = (
-                select(cls.model.id, cls.model.email)
-                .where(cls.model.id == model_id)
-            )
-            result = await session.execute(query)
-            return result.first()
+        query = select(self.model.id, self.model.email).where(self.model.id == model_id)
+        result = await self.session.execute(query)
+        return result.first()
 
-    @classmethod
-    async def add_some(cls, **data):
+    async def add_some(self, **data):
         """
         Добавить новую запись в базу.
-
-        Args:
-            **data: Данные для создания объекта
-
-        Returns:
-            Созданный объект модели
         """
-        async with async_session_maker() as session:
-            obj = cls.model(**data)
-            session.add(obj)
-            await session.commit()
-            await session.refresh(obj)
-            return obj
+        obj = self.model(**data)
+        self.session.add(obj)
+        await self.session.commit()
+        await self.session.refresh(obj)
+        return obj
 
-    @classmethod
-    async def update_some(cls, model_id: int, user_id: int, **data):
+    async def update_some(self, model_id: int, user_id: int, **data):
         """
         Обновить запись по id и user_id.
-
-        Args:
-            model_id: Идентификатор записи
-            user_id: Идентификатор пользователя (владелец)
-            **data: Данные для обновления
-
-        Returns:
-            Обновлённый объект или None
         """
-        async with async_session_maker() as session:
-            query = update(cls.model).where(
-                and_(cls.model.id == model_id, cls.model.user_id == user_id)
-            ).values(**data)
-            await session.execute(query)
-            await session.commit()
+        query = update(self.model).where(
+            and_(self.model.id == model_id, self.model.user_id == user_id)
+        ).values(**data)
+        await self.session.execute(query)
+        await self.session.commit()
 
-            select_query = select(cls.model).where(
-                and_(cls.model.id == model_id, cls.model.user_id == user_id)
-            )
-            result = await session.execute(select_query)
-            return result.scalars().first()
+        select_query = select(self.model).where(
+            and_(self.model.id == model_id, self.model.user_id == user_id)
+        )
+        result = await self.session.execute(select_query)
+        return result.scalars().first()
 
-    @classmethod
-    async def delete_some(cls, model_id: int, user_id: int):
+    async def delete_some(self, model_id: int, user_id: int):
         """
         Удалить запись по id и user_id.
-
-        Args:
-            model_id: Идентификатор записи
-            user_id: Идентификатор пользователя (владелец)
-
-        Returns:
-            Удалённый объект или None
         """
-        async with async_session_maker() as session:
-            # Сначала получаем объект, чтобы вернуть после удаления
-            select_query = select(cls.model).where(
-                and_(cls.model.id == model_id, cls.model.user_id == user_id)
-            )
-            result = await session.execute(select_query)
-            obj = result.scalars().first()
-            if not obj:
-                return None
+        select_query = select(self.model).where(
+            and_(self.model.id == model_id, self.model.user_id == user_id)
+        )
+        result = await self.session.execute(select_query)
+        obj = result.scalars().first()
+        if not obj:
+            return None
 
-            query = delete(cls.model).where(
-                and_(cls.model.id == model_id, cls.model.user_id == user_id)
-            )
-            await session.execute(query)
-            await session.commit()
-            return obj
-
+        query = delete(self.model).where(
+            and_(self.model.id == model_id, self.model.user_id == user_id)
+        )
+        await self.session.execute(query)
+        await self.session.commit()
+        return obj
