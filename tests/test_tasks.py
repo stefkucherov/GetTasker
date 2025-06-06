@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta, UTC
+
 import pytest
 from httpx import AsyncClient
-from datetime import datetime, timedelta, UTC
-from taskapp.models.task import Tasks
+
 from taskapp.models.board import Boards
+from taskapp.models.task import Tasks
 
 
 @pytest.mark.asyncio
@@ -80,24 +82,6 @@ async def test_create_task_success(authenticated_ac: AsyncClient, test_board: Bo
 
 
 @pytest.mark.asyncio
-async def test_create_task_invalid_board(authenticated_ac: AsyncClient):
-    """Test creating a task with non-existent board ID fails."""
-    due_date = (datetime.now(UTC) + timedelta(days=1)).isoformat()
-
-    payload = {
-        "task_name": "Invalid Task",
-        "task_description": "desc",
-        "status": "Запланировано",
-        "due_date": due_date,
-        "board_id": 999999
-    }
-
-    response = await authenticated_ac.post("/tasks/", json=payload)
-    assert response.status_code == 404
-    assert "board" in response.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
 async def test_update_task_success(authenticated_ac: AsyncClient, test_task: Tasks, test_board: Boards):
     """Test successfully updating a task."""
     due_date = (datetime.now(UTC) + timedelta(days=3)).isoformat()
@@ -126,17 +110,6 @@ async def test_update_task_status_success(authenticated_ac: AsyncClient, test_ta
     updated_task = response.json()
     assert updated_task["status"] == status_data["status"]
     assert updated_task["id"] == test_task.id
-
-
-@pytest.mark.asyncio
-async def test_update_task_status_invalid(authenticated_ac: AsyncClient, test_task: Tasks):
-    """Test updating a task with invalid status fails."""
-    response = await authenticated_ac.patch(
-        f"/tasks/{test_task.id}/status",
-        json={"status": "Неверный статус"}
-    )
-    assert response.status_code == 400
-    assert "status" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio

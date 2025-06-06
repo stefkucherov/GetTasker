@@ -3,14 +3,15 @@
 Реализует CRUD операции для досок с использованием FastAPI.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from taskapp.authenticate.dependencies import get_current_user
+from taskapp.models.user import Users
 from taskapp.schemas.boards import BoardCreate, BoardUpdate, BoardOut, BoardWithTasks
 from taskapp.services.board_service import BoardService, get_board_service
 from taskapp.services.task_service import TaskService, get_task_service
-from taskapp.authenticate.dependencies import get_current_user
-from taskapp.models.user import Users
 
 router = APIRouter(
     prefix="/boards",
@@ -27,8 +28,7 @@ async def get_all_boards(
     Получить список всех досок текущего пользователя с количеством задач
     """
     try:
-        boards = await board_service.get_boards_with_tasks_count(user_id=current_user.id)
-        return boards
+        return await board_service.get_boards_with_tasks_count(user_id=current_user.id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -53,10 +53,8 @@ async def get_board(
             detail="Доска не найдена"
         )
 
-    # Получаем задачи для доски
     tasks = await task_service.get_all(board_id=board_id)
 
-    # Добавляем задачи к доске
     board_data = BoardWithTasks.model_validate(board)
     board_data.tasks = tasks
 
@@ -101,13 +99,11 @@ async def update_board(
             detail="Доска не найдена"
         )
 
-    updated = await board_service.update_some(
+    return await board_service.update_some(
         model_id=board_id,
         user_id=current_user.id,
         **board_data.model_dump(exclude_unset=True)
     )
-
-    return updated
 
 
 @router.delete("/{board_id}", status_code=status.HTTP_204_NO_CONTENT)

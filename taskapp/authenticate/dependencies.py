@@ -7,18 +7,19 @@
 
 from datetime import timedelta, datetime, UTC
 
-from fastapi import Depends, Request, status
+from fastapi import Depends, Request
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-from taskapp.database import get_async_session
+
 from taskapp.config import settings
-from taskapp.services.user_service import UserService
+from taskapp.database import get_async_session
 from taskapp.exceptions import (
     TokenAbsentException,
     TokenExpiredException,
     IncorrectTokenFormatException,
     UnauthorizedException,
 )
+from taskapp.services.user_service import UserService
 
 
 def get_token(request: Request):
@@ -29,8 +30,8 @@ def get_token(request: Request):
 
 
 async def get_current_user(
-    token: str = Depends(get_token),
-    session: AsyncSession = Depends(get_async_session)
+        token: str = Depends(get_token),
+        session: AsyncSession = Depends(get_async_session)
 ):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)

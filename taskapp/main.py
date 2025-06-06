@@ -3,25 +3,24 @@
 Создаёт экземпляр приложения, подключает роутеры и мидлвари.
 """
 
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
-import os
-from typing import Callable  # Добавлено для аннотации типа мидлвара
-
-from taskapp.routers.users import router as user_router
-from taskapp.routers.tasks import router as task_router
-from taskapp.routers.boards import router as board_router
-from pages.router import router as page_router
-
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
+from pages.router import router as page_router
+from taskapp.routers.boards import router as board_router
+from taskapp.routers.tasks import router as task_router
+from taskapp.routers.users import router as user_router
+
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:  # Заменили app на _ и убрали предупреждение
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     if not os.getenv("TESTING"):  # Пропускаем Redis в тестах
         try:
             redis = aioredis.from_url("redis://localhost", decode_responses=True)
@@ -31,7 +30,6 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:  # Заменили app �
     yield
 
 
-# Инициализация FastAPI-приложения с учетом lifecycle
 app = FastAPI(lifespan=lifespan)
 
 # Подключение CORS с явной аннотацией типа

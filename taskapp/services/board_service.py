@@ -1,10 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+"""
+Сервис для управления досками задач.
+
+Этот модуль содержит класс `BoardService`, который наследуется от `BaseService` и предоставляет методы для работы
+с досками задач, определенными в модели `Boards`. Он поддерживает операции создания, поиска, обновления и удаления
+досок, а также получение списка досок с количеством связанных задач.
+"""
+
 from fastapi import Depends
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from taskapp.database import get_async_session
 from taskapp.models.board import Boards
 from taskapp.models.task import Tasks
 from taskapp.services.base import BaseService
-from taskapp.database import get_async_session
 
 
 class BoardService(BaseService):

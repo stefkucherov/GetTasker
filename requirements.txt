@@ -65,6 +65,6 @@ uvicorn==0.34.0
 watchfiles==1.0.4
 websockets==14.2
 pytest==8.3.5
-pytest-asyncio==0.24.0  # Добавлено
-pytest-cov==5.0.0  # Добавлено для покрытия (опционально)
-pytest-mock==3.14.0  # Добавлено для моков (опционально)
+pytest-asyncio==0.24.0
+pytest-cov==5.0.0
+pytest-mock==3.14.0

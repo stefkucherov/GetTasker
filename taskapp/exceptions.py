@@ -32,5 +32,5 @@ UnauthorizedException = HTTPException(
 
 RoomCannotBeBookedException = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
-    detail="Нет свободных номеров"
+    detail="Конфликт состояния ресурса"
 )

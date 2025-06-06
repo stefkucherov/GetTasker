@@ -1,5 +1,15 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+"""
+Базовый сервис для работы с моделями SQLAlchemy.
+
+Этот модуль содержит класс `BaseService`, который предоставляет общие методы для взаимодействия с базой данных,
+такие как поиск записей, создание, обновление и удаление. Он используется как основа для специализированных
+сервисов, таких как `UserService`, `BoardService` и `TaskService`, чтобы избежать дублирования кода.
+
+Класс `BaseService` является абстрактным и требует, чтобы дочерние классы определили атрибут `model` — модель
+SQLAlchemy, с которой они работают. Все методы асинхронные, что соответствует использованию `AsyncSession`.
+"""
 from sqlalchemy import select, update, delete, and_
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseService:

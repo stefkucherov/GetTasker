@@ -5,6 +5,7 @@
 
 from sqlalchemy import Integer, Column, String, ForeignKey, DateTime
 from sqlalchemy.sql import func
+
 from taskapp.database import Base
 
 

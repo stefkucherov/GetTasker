@@ -1,14 +1,15 @@
-import pytest
+import uuid
+
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from taskapp.main import app as fastapi_app
+
+from taskapp.authenticate.auth import get_password_hash
 from taskapp.database import Base
-from taskapp.models.user import Users
+from taskapp.main import app as fastapi_app
 from taskapp.models.board import Boards
 from taskapp.models.task import Tasks
-from taskapp.authenticate.auth import get_password_hash
-import uuid
+from taskapp.models.user import Users
 
 DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/gettasker_testbase"
 

@@ -4,6 +4,7 @@
 """
 
 from sqlalchemy import Integer, Column, String
+
 from taskapp.database import Base
 
 

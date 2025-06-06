@@ -4,8 +4,10 @@
 """
 
 from datetime import datetime
-from pydantic import BaseModel, Field
 from typing import Optional, List
+
+from pydantic import BaseModel, Field
+
 from taskapp.schemas.tasks import TaskOut
 
 
