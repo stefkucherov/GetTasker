@@ -3,6 +3,7 @@
 Загружает настройки проекта: база данных, переменные окружения и другие параметры.
 """
 
+import logging
 from typing import Optional
 
 from pydantic import model_validator
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     DB_PASS: str
     DB_NAME: str
     DATABASE_URL: Optional[str] = None
+    REDIS_URL: str = "redis://localhost:6379"
 
     @model_validator(mode="before")
     @classmethod
@@ -29,8 +31,8 @@ class Settings(BaseSettings):
         )
         return values
 
-    SECRET_KEY: str
-    ALGORITHM: str
+    SECRET_KEY: str = "G8Yt@xZ3vK!e7p9rW2sDfQ0uL$MnA6JhVbzXoPc"
+    ALGORITHM: str = "HS256"
 
     class Config:
         env_file = ".env"
@@ -39,5 +41,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-print(settings.DB_HOST)
-print(settings.DATABASE_URL)
+logger = logging.getLogger("gettasker")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(
+    logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+)
+logger.addHandler(handler)

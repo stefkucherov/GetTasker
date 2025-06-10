@@ -1,64 +1,77 @@
 import pytest
 from httpx import AsyncClient
-from starlette import status
 
 
 @pytest.mark.asyncio
-async def test_register_user_success(ac: AsyncClient):
+async def test_register(authenticated_ac: AsyncClient):
+    """
+    Проверяет, что при авторизации зарегистрированный пользователь перенаправляется на страницу /pages/boards.
+    """
+    response = await authenticated_ac.get("/pages/boards")
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_register_user_json(ac: AsyncClient):
+    """
+    Проверяет JSON-регистрацию нового пользователя.
+    Убедимся, что ответ 200 и сообщение успешное.
+    """
     response = await ac.post(
         "/auth/register",
-        data={"username": "newuser", "email": "new@example.com", "password": "pass123"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        follow_redirects=False
+        json={"username": "test_user", "email": "test_user@example.com", "password": "securepass"}
     )
-    assert response.status_code in (302, 303)
-    assert response.headers["location"] == "/auth/login"
+    assert response.status_code == 200
+    assert response.json()["message"] == "Пользователь успешно зарегистрирован"
 
 
 @pytest.mark.asyncio
-async def test_login_user_success(ac: AsyncClient, test_user):
+async def test_register_existing_user(ac: AsyncClient, test_user):
+    """
+    Проверяет попытку регистрации пользователя с уже существующим email.
+    Ожидается ошибка 409.
+    """
+    response = await ac.post(
+        "/auth/register",
+        json={
+            "username": test_user.username,
+            "email": test_user.email,
+            "password": "testpassword"
+        }
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "user already exists"
+
+
+@pytest.mark.asyncio
+async def test_login_user_json(ac: AsyncClient, test_user):
+    """
+    Проверяет успешную авторизацию пользователя по email/password через JSON.
+    Ожидается возврат токена.
+    """
     response = await ac.post(
         "/auth/login",
-        data={"email": test_user.email, "password": "testpassword"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        follow_redirects=False
+        json={
+            "email": test_user.email,
+            "password": "testpassword"
+        }
     )
-    assert response.status_code in (302, 303)
-    assert response.headers["location"] == "/pages/boards"
-    assert "booking_access_token" in response.cookies
+    assert response.status_code == 200
+    assert "access_token" in response.json()
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_success(authenticated_ac: AsyncClient, test_user):
-    response = await authenticated_ac.get("/auth/me")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data["username"] == test_user.username
-    assert data["email"] == test_user.email
-
-
-@pytest.mark.asyncio
-async def test_logout_success(authenticated_ac: AsyncClient):
-    response = await authenticated_ac.post("/auth/logout", follow_redirects=False)
-    assert response.status_code in (302, 303)
-    assert response.headers["location"] == "/auth/login"
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_unauthorized(ac: AsyncClient):
-    response = await ac.get("/auth/me")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "токен" in response.json()["detail"].lower() or "не авторизован" in response.json()["detail"].lower()
-
-
-@pytest.fixture
-async def authenticated_ac(ac: AsyncClient, test_user):
+async def test_login_invalid_password(ac: AsyncClient, test_user):
+    """
+    Проверяет попытку логина с неверным паролем.
+    Ожидается ошибка 401.
+    """
     response = await ac.post(
         "/auth/login",
-        data={"email": test_user.email, "password": "testpassword"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        follow_redirects=False
+        json={
+            "email": test_user.email,
+            "password": "wrong_password"
+        }
     )
-    token = response.cookies.get("booking_access_token")
-    ac.cookies.set("booking_access_token", token)
-    return ac
+    assert response.status_code == 401
+    assert response.json()["detail"] == "invalid credentials"

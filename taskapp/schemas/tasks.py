@@ -4,9 +4,20 @@
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
+
+
+class TaskStatus(str, Enum):
+    """
+    Перечисление допустимых статусов задач.
+    Используется для строгой типизации и валидации статуса.
+    """
+    PLANNED = "Запланировано"
+    IN_PROGRESS = "В работе"
+    DONE = "Готово"
 
 
 class TaskBase(BaseModel):
@@ -16,7 +27,7 @@ class TaskBase(BaseModel):
     """
     task_name: str = Field(..., description="Название задачи")
     task_description: Optional[str] = Field(None, description="Описание задачи")
-    status: str = Field("Запланировано", description='Статус задачи ("Запланировано", "В работе", "Готово")')
+    status: TaskStatus = Field(default=TaskStatus.PLANNED, description="Статус задачи")
     due_date: Optional[datetime] = Field(None, description="Срок выполнения задачи")
 
 
@@ -35,7 +46,7 @@ class TaskUpdate(BaseModel):
     """
     task_name: Optional[str] = Field(None, description="Новое название задачи")
     task_description: Optional[str] = Field(None, description="Новое описание задачи")
-    status: Optional[str] = Field(None, description='Новый статус задачи')
+    status: Optional[TaskStatus] = Field(None, description="Новый статус задачи")
     due_date: Optional[datetime] = Field(None, description="Новый срок выполнения")
     board_id: Optional[int] = Field(None, description="Новый ID доски")
 
@@ -44,7 +55,7 @@ class TaskStatusUpdate(BaseModel):
     """
     Схема для обновления только статуса задачи.
     """
-    status: str = Field(..., description='Новый статус задачи ("Запланировано", "В работе", "Готово")')
+    status: TaskStatus = Field(..., description="Новый статус задачи")
 
 
 class TaskOut(TaskBase):

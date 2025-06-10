@@ -1,14 +1,6 @@
 """
-Сервис для управления пользователями в системе.
-
-Этот модуль содержит класс `UserService`, который наследуется от `BaseService` и предоставляет методы для работы
-с пользователями, определенными в модели `Users`. Он поддерживает операции поиска, создания, обновления и удаления
-пользователей, а также аутентификацию через email.
-
-Пример использования:
-    user_service = UserService(session)
-    user = await user_service.find_one_or_none(email="user@example.com")
-    await user_service.add_some(username="newuser", email="new@example.com", hashed_password="hashedpass")
+Сервис для управления пользователями.
+Расширяет базовый CRUD-функционал и добавляет обновление профиля.
 """
 
 from fastapi import Depends
@@ -21,6 +13,22 @@ from taskapp.services.base import BaseService
 
 class UserService(BaseService):
     model = Users
+
+    async def update_profile(self, user_id: int, new_username: str | None):
+        """
+        Обновить профиль пользователя.
+        """
+        user = await self.find_by_id(user_id)
+        if not user:
+            return None
+
+        if new_username:
+            user.username = new_username
+            self.session.add(user)
+            await self.session.commit()
+            await self.session.refresh(user)
+
+        return user
 
 
 async def get_user_service(session: AsyncSession = Depends(get_async_session)):

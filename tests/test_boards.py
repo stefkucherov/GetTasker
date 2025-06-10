@@ -6,7 +6,10 @@ from taskapp.models.board import Boards
 
 @pytest.mark.asyncio
 async def test_get_all_boards_success(authenticated_ac: AsyncClient, test_board: Boards):
-    """Test successfully retrieving all boards."""
+    """
+    Проверяет успешное получение всех досок текущего пользователя.
+    Ожидается статус 200 и наличие созданной тестовой доски в ответе.
+    """
     response = await authenticated_ac.get("/boards/")
     assert response.status_code == 200
     boards = response.json()
@@ -16,7 +19,10 @@ async def test_get_all_boards_success(authenticated_ac: AsyncClient, test_board:
 
 @pytest.mark.asyncio
 async def test_get_board_by_id_success(authenticated_ac: AsyncClient, test_board: Boards):
-    """Test successfully retrieving a specific board by ID."""
+    """
+    Проверяет успешное получение доски по её ID.
+    Ожидается, что данные совпадают с тестовой доской.
+    """
     response = await authenticated_ac.get(f"/boards/{test_board.id}")
     assert response.status_code == 200
     board = response.json()
@@ -26,7 +32,9 @@ async def test_get_board_by_id_success(authenticated_ac: AsyncClient, test_board
 
 @pytest.mark.asyncio
 async def test_get_board_not_found(authenticated_ac: AsyncClient):
-    """Test attempting to get a non-existent board returns 404."""
+    """
+    Проверяет, что запрос несуществующей доски возвращает 404.
+    """
     response = await authenticated_ac.get("/boards/999999")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower() or "не найден" in response.json()["detail"].lower()
@@ -34,7 +42,10 @@ async def test_get_board_not_found(authenticated_ac: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_board_success(authenticated_ac: AsyncClient):
-    """Test successfully creating a new board."""
+    """
+    Проверяет успешное создание новой доски.
+    После создания доска удаляется (чистка).
+    """
     payload = {"name": "New Test Board"}
     response = await authenticated_ac.post("/boards/", json=payload)
     assert response.status_code == 201
@@ -42,14 +53,15 @@ async def test_create_board_success(authenticated_ac: AsyncClient):
     assert board["name"] == payload["name"]
     assert "id" in board
 
-    # Clean up - delete the board we just created
     delete_response = await authenticated_ac.delete(f"/boards/{board['id']}")
     assert delete_response.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_update_board_success(authenticated_ac: AsyncClient, test_board: Boards):
-    """Test successfully updating a board's name."""
+    """
+    Проверяет успешное обновление имени доски.
+    """
     update_data = {"name": "Updated Board Name"}
     response = await authenticated_ac.put(f"/boards/{test_board.id}", json=update_data)
     assert response.status_code == 200
@@ -60,7 +72,9 @@ async def test_update_board_success(authenticated_ac: AsyncClient, test_board: B
 
 @pytest.mark.asyncio
 async def test_update_board_not_found(authenticated_ac: AsyncClient):
-    """Test attempting to update a non-existent board returns 404."""
+    """
+    Проверяет, что попытка обновить несуществующую доску возвращает 404.
+    """
     response = await authenticated_ac.put("/boards/999999", json={"name": "x"})
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower() or "не найден" in response.json()["detail"].lower()
@@ -68,8 +82,10 @@ async def test_update_board_not_found(authenticated_ac: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_board_success(authenticated_ac: AsyncClient, db_session):
-    """Test successfully deleting a board."""
-    # Create a temporary board just for deletion
+    """
+    Проверяет успешное удаление доски.
+    Создаёт доску, удаляет её и убеждается, что она больше недоступна.
+    """
     new_board_response = await authenticated_ac.post("/boards/", json={"name": "Board to Delete"})
     assert new_board_response.status_code == 201
     board_id = new_board_response.json()["id"]
@@ -85,7 +101,9 @@ async def test_delete_board_success(authenticated_ac: AsyncClient, db_session):
 
 @pytest.mark.asyncio
 async def test_delete_board_not_found(authenticated_ac: AsyncClient):
-    """Test attempting to delete a non-existent board returns 404."""
+    """
+    Проверяет, что удаление несуществующей доски возвращает 404.
+    """
     response = await authenticated_ac.delete("/boards/999999")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower() or "не найден" in response.json()["detail"].lower()
@@ -93,7 +111,9 @@ async def test_delete_board_not_found(authenticated_ac: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_board_unauthorized_access(ac: AsyncClient, test_board: Boards):
-    """Test that unauthorized access to boards fails."""
+    """
+    Проверяет, что доступ к доске без авторизации возвращает 401.
+    """
     response = await ac.get(f"/boards/{test_board.id}")
     assert response.status_code == 401
     assert "токен истек" in response.json()["detail"].lower() or "не авторизован" in response.json()["detail"].lower()

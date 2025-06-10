@@ -16,6 +16,7 @@ DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/gettasker_testba
 
 @pytest_asyncio.fixture(scope="function")
 async def db_engine():
+    """Создаёт и удаляет тестовую базу данных с таблицами."""
     engine = create_async_engine(DB_URL, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -28,18 +29,15 @@ async def db_engine():
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session(db_engine):
-    async_session = async_sessionmaker(
-        bind=db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
-    async with async_session() as session:
+    """Создаёт сессию SQLAlchemy для подключения к тестовой БД."""
+    session_maker = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_maker() as session:
         yield session
 
 
-# 👇 Подмена зависимости get_async_session в FastAPI
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def override_get_db(db_session):
+async def override_get_db(db_session: AsyncSession):
+    """Переопределяет зависимость get_async_session на тестовую сессию."""
     from taskapp.authenticate.dependencies import get_async_session
 
     async def _override():
@@ -52,13 +50,18 @@ async def override_get_db(db_session):
 
 @pytest_asyncio.fixture(scope="function")
 async def ac():
+    """Возвращает асинхронный HTTP-клиент для тестирования FastAPI-приложения."""
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
 
 @pytest_asyncio.fixture(scope="function")
-async def authenticated_ac(ac, test_user):
+async def authenticated_ac(ac: AsyncClient, test_user: Users):
+    """
+    Авторизованный HTTP-клиент с установленным JWT токеном.
+    Использует фикстуру test_user для логина.
+    """
     response = await ac.post(
         "/pages/login",
         data={"email": test_user.email, "password": "testpassword"},
@@ -72,16 +75,13 @@ async def authenticated_ac(ac, test_user):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_user(db_session: AsyncSession):
-    unique_suffix = str(uuid.uuid4())[:8]
-    username = f"testuser_{unique_suffix}"
-    email = f"testuser_{unique_suffix}@example.com"
-    hashed_password = get_password_hash("testpassword")
-
+async def test_user(db_session: AsyncSession) -> Users:
+    """Создаёт и возвращает временного пользователя для тестов."""
+    suffix = str(uuid.uuid4())[:8]
     user = Users(
-        username=username,
-        email=email,
-        hashed_password=hashed_password
+        username=f"testuser_{suffix}",
+        email=f"testuser_{suffix}@example.com",
+        hashed_password=get_password_hash("testpassword")
     )
     db_session.add(user)
     await db_session.commit()
@@ -94,29 +94,33 @@ async def test_user(db_session: AsyncSession):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_board(test_user, db_session: AsyncSession):
+async def test_board(test_user: Users, db_session: AsyncSession) -> Boards:
+    """Создаёт и возвращает тестовую доску, привязанную к test_user."""
     board = Boards(name="Test Board", user_id=test_user.id)
     db_session.add(board)
     await db_session.commit()
     await db_session.refresh(board)
+
     yield board
+
     await db_session.delete(board)
     await db_session.commit()
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_task(test_user, test_board, db_session: AsyncSession):
+async def test_task(test_board: Boards, test_user: Users, db_session: AsyncSession) -> Tasks:
+    """Создаёт задачу, привязанную к test_board и test_user."""
     task = Tasks(
-        user_id=test_user.id,
-        board_id=test_board.id,
         task_name="Test Task",
-        task_description="Description",
-        status="Запланировано",
+        board_id=test_board.id,
+        user_id=test_user.id,
         email=test_user.email
     )
     db_session.add(task)
     await db_session.commit()
     await db_session.refresh(task)
+
     yield task
+
     await db_session.delete(task)
     await db_session.commit()

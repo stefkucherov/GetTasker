@@ -9,8 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import DeclarativeBase
 
 from taskapp.config import settings
+from taskapp.config import logger
 
-engine = create_async_engine(settings.DATABASE_URL)
+try:
+    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+except Exception:
+    logger.critical("Ошибка при создании движка БД", exc_info=True)
+    raise
+
 async_session_maker = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 

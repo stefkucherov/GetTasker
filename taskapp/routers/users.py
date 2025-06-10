@@ -1,12 +1,13 @@
 """
 Модуль роутера для работы с пользователями.
-Авторизирует и регистрирует пользователей с использованием FastAPI.
+Обрабатывает регистрацию, авторизацию, получение и обновление профиля.
 """
+
 from typing import Optional
 
 from fastapi import (
-    APIRouter, Request, Depends,
-    HTTPException, Form, status, Body
+    APIRouter, Depends,
+    HTTPException, Body
 )
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -44,31 +45,15 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = None
 
 
-@router.post("/register")
-async def register_user_form(
-        request: Request,
-        username: str = Form(None),
-        email: str = Form(None),
-        password: str = Form(None),
-        session: AsyncSession = Depends(get_async_session),
-):
-    svc = UserService(session)
-    if await svc.find_one_or_none(email=email):
-        return templates.TemplateResponse(
-            "regs.html",
-            {"request": request, "error": "Пользователь с такой почтой уже существует"},
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
-    hashed = get_password_hash(password)
-    await svc.add_some(username=username, email=email, hashed_password=hashed)
-    return RedirectResponse("/auth/login", status_code=status.HTTP_303_SEE_OTHER)
-
-
 @router.post("/register", response_class=JSONResponse)
 async def register_user_json(
         body: RegisterIn = Body(...),
         session: AsyncSession = Depends(get_async_session),
 ):
+    """
+    Регистрирует нового пользователя по JSON-данным.
+    Проверяет уникальность email, хэширует пароль.
+    """
     svc = UserService(session)
     if await svc.find_one_or_none(email=body.email):
         raise HTTPException(status_code=409, detail="user already exists")
@@ -77,31 +62,14 @@ async def register_user_json(
     return {"message": "Пользователь успешно зарегистрирован"}
 
 
-@router.post("/login")
-async def login_user_form(
-        request: Request,
-        email: str = Form(None),
-        password: str = Form(None),
-        session: AsyncSession = Depends(get_async_session),
-):
-    user = await UserService(session).find_one_or_none(email=email)
-    if not user or not verify_password(password, user.hashed_password):
-        return templates.TemplateResponse(
-            "auth.html",
-            {"request": request, "error": "Неверная почта или пароль"},
-            status_code=status.HTTP_200_OK
-        )
-    token = create_access_token({"sub": str(user.id)})
-    resp = RedirectResponse("/pages/boards", status_code=status.HTTP_303_SEE_OTHER)
-    resp.set_cookie("booking_access_token", token, httponly=True, path="/")
-    return resp
-
-
 @router.post("/login", response_class=JSONResponse)
 async def login_user_json(
         body: LoginIn,
         session: AsyncSession = Depends(get_async_session),
 ):
+    """
+    Авторизация пользователя по JSON-данным. Возвращает JWT токен.
+    """
     user = await UserService(session).find_one_or_none(email=body.email)
     if not user or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="invalid credentials")
@@ -111,6 +79,9 @@ async def login_user_json(
 
 @router.post("/logout")
 async def logout_user():
+    """
+    Удаляет cookie и перенаправляет на страницу входа.
+    """
     response = RedirectResponse(url="/auth/login", status_code=303)
     response.delete_cookie(
         key="booking_access_token",
@@ -122,7 +93,14 @@ async def logout_user():
 
 @router.get("/me", response_class=JSONResponse)
 async def read_me_users(current_user: Users = Depends(get_current_user)):
-    return {"id": current_user.id, "username": current_user.username, "email": current_user.email}
+    """
+    Возвращает информацию о текущем пользователе.
+    """
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
+    }
 
 
 @router.patch("/profile", response_class=JSONResponse)
@@ -131,9 +109,16 @@ async def update_profile(
         current_user: Users = Depends(get_current_user),
         session: AsyncSession = Depends(get_async_session)
 ):
-    if body.username:
-        current_user.username = body.username
-        session.add(current_user)
-        await session.commit()
-        await session.refresh(current_user)
-    return {"id": current_user.id, "username": current_user.username, "email": current_user.email}
+    """
+    Обновляет профиль текущего пользователя.
+    Изменяет только имя пользователя.
+    """
+    updated = await UserService(session).update_profile(
+        user_id=current_user.id,
+        new_username=body.username
+    )
+    return {
+        "id": updated.id,
+        "username": updated.username,
+        "email": updated.email
+    }

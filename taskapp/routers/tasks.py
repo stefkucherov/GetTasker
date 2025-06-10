@@ -2,11 +2,12 @@
 Модуль роутера для работы с задачами.
 Реализует CRUD операции для задач с использованием FastAPI.
 """
+
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 
-from taskapp.authenticate.dependencies import get_current_user
+from taskapp.authenticate.dependencies import get_current_user, verify_ownership
 from taskapp.models.user import Users
 from taskapp.schemas.tasks import TaskCreate, TaskUpdate, TaskOut, TaskStatusUpdate
 from taskapp.services.board_service import BoardService, get_board_service
@@ -26,17 +27,21 @@ async def get_tasks(
         task_svc: TaskService = Depends(get_task_service),
         board_svc: BoardService = Depends(get_board_service),
 ) -> List[TaskOut]:
+    """
+    Получает список задач текущего пользователя.
+    Можно фильтровать по ID доски и по статусу.
+    """
     params = {"user_id": current_user.id}
 
     if board_id is not None:
-        if not await board_svc.find_one_or_none(id=board_id, user_id=current_user.id):
-            raise HTTPException(status_code=404, detail="board not found")
+        await verify_ownership(board_svc, board_id, current_user.id)
         params["board_id"] = board_id
 
     if status_filter:
         params["status"] = status_filter
 
-    return await task_svc.get_all(**params)
+    tasks = await task_svc.get_all(**params)
+    return [TaskOut.model_validate(task) for task in tasks]
 
 
 @router.get("/{task_id}", response_model=TaskOut)
@@ -45,10 +50,16 @@ async def get_task(
         current_user: Users = Depends(get_current_user),
         task_svc: TaskService = Depends(get_task_service),
 ) -> TaskOut:
+    """
+    Получает задачу по её ID, если она принадлежит текущему пользователю.
+    """
+    await verify_ownership(task_svc, task_id, current_user.id)
+
     task = await task_svc.find_one_or_none(id=task_id, user_id=current_user.id)
     if not task:
-        raise HTTPException(status_code=404, detail="task not found")
-    return task
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    return TaskOut.model_validate(task)
 
 
 @router.post("/", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -58,14 +69,18 @@ async def create_task(
         task_svc: TaskService = Depends(get_task_service),
         board_svc: BoardService = Depends(get_board_service),
 ) -> TaskOut:
-    if not await board_svc.find_one_or_none(id=task_data.board_id, user_id=current_user.id):
-        raise HTTPException(status_code=404, detail="board not found")
+    """
+    Создаёт новую задачу на указанной доске.
+    Проверяет, что доска принадлежит текущему пользователю.
+    """
+    await verify_ownership(board_svc, task_data.board_id, current_user.id)
 
-    return await task_svc.add_some(
+    task = await task_svc.add_some(
         user_id=current_user.id,
         email=current_user.email,
         **task_data.model_dump()
     )
+    return TaskOut.model_validate(task)
 
 
 @router.put("/{task_id}", response_model=TaskOut)
@@ -76,18 +91,23 @@ async def update_task(
         task_svc: TaskService = Depends(get_task_service),
         board_svc: BoardService = Depends(get_board_service),
 ) -> TaskOut:
-    if not await task_svc.find_one_or_none(id=task_id, user_id=current_user.id):
-        raise HTTPException(status_code=404, detail="task not found")
+    """
+    Обновляет задачу. Проверяет, что задача и новая доска принадлежат текущему пользователю.
+    """
+    await verify_ownership(task_svc, task_id, current_user.id)
 
     if task_data.board_id is not None:
-        if not await board_svc.find_one_or_none(id=task_data.board_id, user_id=current_user.id):
-            raise HTTPException(status_code=404, detail="board not found")
+        await verify_ownership(board_svc, task_data.board_id, current_user.id)
 
-    return await task_svc.update_some(
+    task = await task_svc.update_some(
         model_id=task_id,
         user_id=current_user.id,
         **task_data.model_dump(exclude_unset=True)
     )
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    return TaskOut.model_validate(task)
 
 
 @router.patch("/{task_id}/status", response_model=TaskOut)
@@ -97,18 +117,21 @@ async def update_task_status(
         current_user: Users = Depends(get_current_user),
         task_svc: TaskService = Depends(get_task_service),
 ) -> TaskOut:
-    valid = ["Запланировано", "В работе", "Готово"]
-    if status_data.status not in valid:
-        raise HTTPException(status_code=400, detail="invalid status")
+    """
+    Обновляет только статус задачи.
+    Использует строго типизированный Enum TaskStatus.
+    """
+    await verify_ownership(task_svc, task_id, current_user.id)
 
-    if not await task_svc.find_one_or_none(id=task_id, user_id=current_user.id):
-        raise HTTPException(status_code=404, detail="task not found")
-
-    return await task_svc.update_some(
+    task = await task_svc.update_some(
         model_id=task_id,
         user_id=current_user.id,
         status=status_data.status
     )
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    return TaskOut.model_validate(task)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -117,7 +140,8 @@ async def delete_task(
         current_user: Users = Depends(get_current_user),
         task_svc: TaskService = Depends(get_task_service),
 ):
-    if not await task_svc.find_one_or_none(id=task_id, user_id=current_user.id):
-        raise HTTPException(status_code=404, detail="task not found")
-
+    """
+    Удаляет задачу, если она принадлежит текущему пользователю.
+    """
+    await verify_ownership(task_svc, task_id, current_user.id)
     await task_svc.delete_some(model_id=task_id, user_id=current_user.id)

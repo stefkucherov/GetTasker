@@ -14,9 +14,12 @@ from taskapp.models.task import Tasks
 from taskapp.services.base import BaseService
 
 
-class TaskService(BaseService):
+class TaskService(BaseService[Tasks]):
     model = Tasks
 
 
-async def get_task_service(session: AsyncSession = Depends(get_async_session)):
+async def get_task_service(session: AsyncSession = Depends(get_async_session)) -> TaskService:
+    """
+    Зависимость FastAPI для TaskService.
+    """
     return TaskService(session)

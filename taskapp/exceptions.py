@@ -15,11 +15,6 @@ TokenExpiredException = HTTPException(
     detail="Токен Истек"
 )
 
-TokenAbsentException = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Токен Истек"
-)
-
 IncorrectTokenFormatException = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Неверный формат токена"
@@ -28,9 +23,4 @@ IncorrectTokenFormatException = HTTPException(
 UnauthorizedException = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Неавторизованный доступ"
-)
-
-RoomCannotBeBookedException = HTTPException(
-    status_code=status.HTTP_409_CONFLICT,
-    detail="Конфликт состояния ресурса"
 )
